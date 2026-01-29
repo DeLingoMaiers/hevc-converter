@@ -1,0 +1,37 @@
+name: HEVC Alpha Converter
+
+on:
+  workflow_dispatch:
+    inputs:
+      input_url:
+        description: 'GET URL для скачивания исходника'
+        required: true
+        type: string
+      output_url:
+        description: 'PUT URL для загрузки результата'
+        required: true
+        type: string
+
+jobs:
+  convert:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Download source video
+        run: |
+          curl -L --fail -o input.mov "${{ github.event.inputs.input_url }}"
+          ls -lh input.mov
+
+      - name: Convert to HEVC with Alpha
+        run: |
+          avconvert --source input.mov --output output.mov --preset PresetHEVCHighestQualityWithAlpha
+          ls -lh output.mov
+
+      - name: Upload to R2
+        run: |
+          curl -X PUT -H "Content-Type: video/quicktime" --data-binary @output.mov "${{ github.event.inputs.output_url }}"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f input.mov output.mov
