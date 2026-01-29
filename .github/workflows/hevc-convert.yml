@@ -3,12 +3,12 @@ name: HEVC Alpha Converter
 on:
   workflow_dispatch:
     inputs:
-      input_url:
-        description: 'GET URL для скачивания исходника'
+      source_url:
+        description: 'URL исходного видео'
         required: true
         type: string
-      output_url:
-        description: 'PUT URL для загрузки результата'
+      output_filename:
+        description: 'Имя выходного файла'
         required: true
         type: string
 
@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Download source video
         run: |
-          curl -L --fail -o input.mov "${{ github.event.inputs.input_url }}"
+          curl -L --fail -o input.mov "${{ github.event.inputs.source_url }}"
           ls -lh input.mov
 
       - name: Convert to HEVC with Alpha
@@ -30,7 +30,12 @@ jobs:
 
       - name: Upload to R2
         run: |
-          curl -X PUT -H "Content-Type: video/quicktime" --data-binary @output.mov "${{ github.event.inputs.output_url }}"
+          curl -X PUT \
+            -H "Authorization: AWS4-HMAC-SHA256" \
+            -T output.mov \
+            "${{ secrets.R2_ENDPOINT }}/hevc-video-converter/${{ github.event.inputs.output_filename }}" \
+            --aws-sigv4 "aws:amz:auto:s3" \
+            --user "${{ secrets.R2_ACCESS_KEY_ID }}:${{ secrets.R2_SECRET_ACCESS_KEY }}"
 
       - name: Cleanup
         if: always()
