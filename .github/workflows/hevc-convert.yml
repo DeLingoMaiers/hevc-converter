@@ -29,13 +29,12 @@ jobs:
           ls -lh output.mov
 
       - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
-          curl -X PUT \
-            -H "Authorization: AWS4-HMAC-SHA256" \
-            -T output.mov \
-            "${{ secrets.R2_ENDPOINT }}/hevc-video-converter/${{ github.event.inputs.output_filename }}" \
-            --aws-sigv4 "aws:amz:auto:s3" \
-            --user "${{ secrets.R2_ACCESS_KEY_ID }}:${{ secrets.R2_SECRET_ACCESS_KEY }}"
+          aws s3 cp output.mov s3://hevc-video-converter/${{ github.event.inputs.output_filename }} \
+            --endpoint-url ${{ secrets.R2_ENDPOINT }}
 
       - name: Cleanup
         if: always()
